@@ -1,36 +1,60 @@
-from telegram import Update
-from telegram.ext import Application, MessageHandler, CommandHandler, filters, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
 
-# Load Bot Token from Railway environment
+# Bot token from Railway environment
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Your Google Drive link
-DRIVE_LINK = "https://drive.google.com/drive/folder/your-folder-id"
+# Links
+CHANNEL_LINK = "https://t.me/notessearchin"
+INSTAGRAM_LINK = "https://instagram.com/notessearch.in"
+FREE_DRIVE_LINK = "https://drive.google.com/drive/folder/your-folder-id"
 
-# Handle new members joining a group
-async def welcome_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message and update.message.new_chat_members:
-        for member in update.message.new_chat_members:
-            await update.message.reply_text(
-                f"Welcome {member.first_name} 🎉\nHere’s your link: {DRIVE_LINK}"
-            )
+# /start command
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    keyboard = [
+        [InlineKeyboardButton("📂 Get Free Drive Link", callback_data="get_drive")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-# Handle /start command (in DM or group)
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"Hello {update.effective_user.first_name} 👋\nHere’s your Drive link: {DRIVE_LINK}"
+        f"Hi {user.first_name} 👋\nWelcome to **NotesSearch Bot** 📚",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
     )
 
+# Handle button clicks
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "get_drive":
+        keyboard = [
+            [InlineKeyboardButton("📢 Join Our Channel", url=CHANNEL_LINK)],
+            [InlineKeyboardButton("📸 Follow on Instagram", url=INSTAGRAM_LINK)]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        text = (
+            "✨ To access the free Drive link:\n"
+            f"👉 First, join our channel: {CHANNEL_LINK}\n\n"
+            "📚 About *NotesSearch*:\n"
+            "- Daily updated notes & PDFs for UPSC, SSC, NEET, JEE\n"
+            "- Free & premium content for all students\n"
+            "- Helping students prepare smarter 🚀\n\n"
+            f"📸 Follow us on Instagram: {INSTAGRAM_LINK}\n"
+            "➡️ Send me 'Drive' on Instagram to unlock **more important book links** 📂"
+        )
+
+        await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown")
+
 def main():
-    # Create bot application
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # Add handlers
-    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_message))
-    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
-    # Run bot
     print("🤖 Bot started...")
     app.run_polling()
 
