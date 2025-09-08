@@ -8,7 +8,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_USERNAME = "notessearchin"
 CHANNEL_LINK = "https://t.me/notessearchin"
 INSTAGRAM_LINK = "https://instagram.com/notessearch.in"
-FREE_DRIVE_LINK = "https://drive.google.com/drive/folders/1BpeKDhMBEIYEf5uowtSAxvCDkMOba3ZG?usp=sharing"
+FREE_DRIVE_LINK = "https://drive.google.com/drive/folder/your-folder-id"
 WEBSITE_LINK = "https://notessearch.in"
 SUPPORT_EMAIL = "notessearchin@gmail.com"
 
@@ -34,14 +34,29 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if query.data == "start_process":
-        keyboard = [[InlineKeyboardButton("📢 Follow Telegram Channel", callback_data="check_channel")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        user_id = query.from_user.id
+        try:
+            member = await context.bot.get_chat_member(f"@{CHANNEL_USERNAME}", user_id)
+            if member.status in ["member", "administrator", "creator"]:
+                # User already joined → send drive & Instagram
+                await send_drive_and_instagram(query.message, context)
+                await asyncio.sleep(120)
+                await send_upsc_package(query.message.chat_id, context)
+            else:
+                # Not joined → show join button
+                keyboard = [[InlineKeyboardButton("📢 Follow Telegram Channel", callback_data="check_channel")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await query.message.reply_text(
-            "🚀 Great! Let's get started.\n\n"
-            "First, please follow our Telegram channel to unlock free notes ⬇️",
-            reply_markup=reply_markup
-        )
+                await query.message.reply_text(
+                    "🚀 Great! Let's get started.\n\n"
+                    "First, please follow our Telegram channel to unlock free notes ⬇️",
+                    reply_markup=reply_markup
+                )
+        except Exception:
+            await query.message.reply_text(
+                "⚠️ Couldn’t verify your channel membership.\n"
+                f"Please make sure you joined here: {CHANNEL_LINK}"
+            )
 
     elif query.data == "about":
         keyboard = [
@@ -64,9 +79,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif query.data == "help":
-        keyboard = [
-            [InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_LINK)]
-        ]
+        keyboard = [[InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_LINK)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.message.reply_text(
@@ -83,26 +96,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             member = await context.bot.get_chat_member(f"@{CHANNEL_USERNAME}", user_id)
             if member.status in ["member", "administrator", "creator"]:
-                # Send drive link
-                await query.message.reply_text(
-                    f"✅ Thanks for joining our channel!\n\nHere’s your free Drive link 📂:\n{FREE_DRIVE_LINK}"
-                )
-
-                # Send Instagram follow message
-                keyboard = [[InlineKeyboardButton("📸 Follow on Instagram", url=INSTAGRAM_LINK)]]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-
-                await query.message.reply_text(
-                    "✨ To unlock *more important books*:\n"
-                    "➡️ Follow us on Instagram & send the message *'Drive'* there.\n",
-                    reply_markup=reply_markup,
-                    parse_mode="Markdown"
-                )
-
-                # Schedule UPSC Package message after 2 minutes
+                await send_drive_and_instagram(query.message, context)
                 await asyncio.sleep(120)
                 await send_upsc_package(query.message.chat_id, context)
-
             else:
                 await query.message.reply_text(
                     "❌ You haven’t joined the channel yet. Please join here and try again:\n"
@@ -113,6 +109,24 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "⚠️ Please make sure you joined the channel first:\n"
                 f"{CHANNEL_LINK}"
             )
+
+# ----------------- Helper: Send Drive & Instagram -----------------
+async def send_drive_and_instagram(message, context):
+    # Send drive link
+    await message.reply_text(
+        f"✅ Thanks for joining our channel!\n\nHere’s your free Drive link 📂:\n{FREE_DRIVE_LINK}"
+    )
+
+    # Instagram follow message
+    keyboard = [[InlineKeyboardButton("📸 Follow on Instagram", url=INSTAGRAM_LINK)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await message.reply_text(
+        "✨ To unlock *more important books*:\n"
+        "➡️ Follow us on Instagram & send the message *'Drive'* there.\n",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
 
 # ----------------- UPSC Package -----------------
 async def send_upsc_package(chat_id, context: ContextTypes.DEFAULT_TYPE):
@@ -147,10 +161,8 @@ async def send_upsc_package(chat_id, context: ContextTypes.DEFAULT_TYPE):
 # ----------------- Main -----------------
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
-
     print("🤖 Bot started...")
     app.run_polling()
 
