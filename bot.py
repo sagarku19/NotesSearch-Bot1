@@ -12,7 +12,7 @@ CHANNEL_USERNAME = "notessearchin"
 CHANNEL_LINK = "https://t.me/notessearchin"
 INSTAGRAM_LINK = "https://instagram.com/notessearch.in"
 FREE_DRIVE_LINK = "https://drive.google.com/drive/folder/your-folder-id"
-WEBSITE_LINK = "https://notessearch.in"
+WEBSITE_LINK = "https://upsc.notessearch.in"   # ✅ Short domain version
 SUPPORT_EMAIL = "notessearchin@gmail.com"
 
 # Configure Gemini
@@ -25,45 +25,21 @@ You are an AI-powered Telegram assistant for NotesSearch.in.
 Role & Personality:
 - Act like a friendly and knowledgeable course counselor.
 - Communicate clearly, politely, and in a student-friendly tone.
-- Keep answers short and easy to understand, unless the user asks for detailed explanation.
 - Always sound supportive and motivating, like a guide who wants students to succeed.
 
 What you know about NotesSearch.in:
 - NotesSearch provides study material for UPSC, JEE, NEET, and GATE.
 - Resources include: detailed notes, PYQs (Previous Year Questions), revision mind maps, and mock tests.
-- The main website is https://notessearch.in
+- The main link for students: https://upsc.notessearch.in
 - Students can access free material and also purchase paid courses.
-- For joining or pricing, always guide: "Click the Buy Now button on our website."
+- For joining or pricing, always guide: "Click the Buy Now button on our website 👉 upsc.notessearch.in"
 
-How to handle questions:
-1. If the question is about UPSC, JEE, NEET, or GATE:
-    - Explain what NotesSearch offers for that exam.
-    - Mention notes, PYQs, revision mind maps, and mock tests.
-    - Encourage the student to visit https://notessearch.in for full details.
-
-2. If the student asks about pricing/joining:
-    - Always answer: "You can join easily! Just click the Buy Now button on our website 👉 https://notessearch.in"
-
-3. If the student asks a general study question (like preparation tips):
-    - Give helpful, motivational advice.
-    - Then connect it back to NotesSearch resources.
-
-4. If the student asks about something unrelated (like jokes, sports, news):
-    - Politely say: "I’m here to help with study material and exam preparation."
-    - Redirect them back to courses and study help.
-
-5. If the student just greets (Hi/Hello/Good morning):
-    - Reply warmly and offer help. Example: "👋 Hello! I’m your NotesSearch study assistant. Which exam are you preparing for?"
-
-6. Always include the website link when talking about NotesSearch resources.
-
-Examples of replies:
-- "📚 For UPSC, we provide detailed notes, PYQs, revision mind maps, and mock tests. Visit 👉 https://notessearch.in"
-- "For pricing and joining, just click the Buy Now button on our website 👉 https://notessearch.in"
-- "We support students preparing for UPSC, JEE, NEET, and GATE. Which exam are you focusing on?"
-- "That’s a great question! Consistent practice is key to success. At NotesSearch, we provide PYQs and mock tests to help you practice better."
-
-Always stay consistent with these rules.
+Rules:
+1. Exam-specific questions → Explain resources + always link to upsc.notessearch.in
+2. Pricing/joining → "Just click Buy Now button 👉 upsc.notessearch.in"
+3. Study tips → Motivational + connect to NotesSearch
+4. Irrelevant → Redirect politely back to study resources
+5. Greetings → Warm welcome & ask exam focus
 """
 
 # Create Gemini model with system prompt
@@ -72,21 +48,38 @@ model = genai.GenerativeModel(
     system_instruction=BOT_PROMPT
 )
 
-# =================== COMMANDS & HANDLERS ===================
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles the /start command."""
+# =================== START MESSAGE ===================
+async def start_message(chat):
+    """Reusable start message for new users and /start command"""
     keyboard = [
         [InlineKeyboardButton("💬 Chat with Bot", callback_data="chat_with_bot")],
         [InlineKeyboardButton("ℹ️ About NotesSearch", callback_data="about")],
         [InlineKeyboardButton("🆘 Help", callback_data="help")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "👋 Welcome to *NotesSearch Bot* 📚\n\n"
-        "Choose an option below to get started 👇",
+
+    await chat.send_message(
+        "👋 *Welcome to NotesSearch Bot* 📚\n\n"
+        "✨ Your AI-powered study companion for *UPSC, JEE, NEET & GATE* ✨\n\n"
+        "Here’s what I can help you with:\n"
+        "✅ Access Free & Premium Notes\n"
+        "✅ Previous Year Questions (PYQs)\n"
+        "✅ Revision Mind Maps\n"
+        "✅ Mock Tests & Practice Resources\n"
+        "✅ Smart Study Guidance\n\n"
+        "⚡ *Pro Tip:* Just type your question or click a button below 👇",
         parse_mode="Markdown",
         reply_markup=reply_markup
     )
+
+# =================== COMMANDS & HANDLERS ===================
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the /start command."""
+    await start_message(update.message)
+
+async def new_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Auto-send start message when new chat is opened"""
+    await start_message(update.message)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles all button clicks."""
@@ -95,52 +88,75 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "chat_with_bot":
         await query.message.reply_text(
-            "Hello there! I'm an AI assistant for NotesSearch.in. "
-            "Feel free to ask me anything about study materials, exam preparation, "
-            "and our courses. How can I help you today?"
+            "👋 Hi there, I’m your *NotesSearch Study Assistant* 🤖\n\n"
+            "Ask me *anything* about:\n"
+            "📚 UPSC, JEE, NEET, GATE preparation\n"
+            "📝 Notes, PYQs & Mock Tests\n"
+            "💡 Study strategies & motivation\n\n"
+            "✨ I’m here to guide you towards success. So, tell me — *which exam are you preparing for?*",
+            parse_mode="Markdown"
         )
     
     elif query.data == "about":
         keyboard = [
             [InlineKeyboardButton("🌐 Visit Website", url=WEBSITE_LINK)],
             [InlineKeyboardButton("📢 Join Telegram", url=CHANNEL_LINK)],
-            [InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_LINK)]
+            [InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_LINK)],
+            [InlineKeyboardButton("📂 Free Drive Link", url=FREE_DRIVE_LINK)]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+
         await query.message.reply_text(
             "📖 *About NotesSearch*\n\n"
-            "NotesSearch is your one-stop platform for:\n"
-            "✨ UPSC, SSC, NEET, JEE Notes & PDFs\n"
-            "✨ Handwritten + Printed Notes\n"
-            "✨ Organized Study Plans & Toppers’ Notes\n"
-            "✨ Daily Updates & Community Support\n\n"
-            "We make exam prep easier, smarter & faster 🚀",
+            "NotesSearch is your *one-stop learning partner* 🚀\n\n"
+            "✨ What we offer:\n"
+            "🔹 UPSC, JEE, NEET & GATE study material\n"
+            "🔹 Handwritten + Printed Notes (Hindi & English)\n"
+            "🔹 Organized Study Plans & Toppers’ Notes\n"
+            "🔹 Daily Free PDFs & Updates\n"
+            "🔹 Community Support via Telegram\n\n"
+            "📍 *Explore now:* [upsc.notessearch.in](https://upsc.notessearch.in)",
             parse_mode="Markdown",
             reply_markup=reply_markup
         )
 
     elif query.data == "help":
-        keyboard = [[InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_LINK)]]
+        keyboard = [
+            [InlineKeyboardButton("📸 Instagram", url=INSTAGRAM_LINK)],
+            [InlineKeyboardButton("📢 Telegram", url=CHANNEL_LINK)]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+
         await query.message.reply_text(
             "🆘 *Help & Support*\n\n"
+            "If you face any issues or have queries:\n\n"
             f"📧 Email: {SUPPORT_EMAIL}\n"
+            f"🌐 Website: {WEBSITE_LINK}\n"
             f"📸 Instagram: {INSTAGRAM_LINK}\n\n"
-            "Reach out anytime for queries or support! 💬",
+            "💡 Our team is always ready to assist you!",
             parse_mode="Markdown",
             reply_markup=reply_markup
         )
 
 # =================== GEMINI AI REPLY ===================
 async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends user messages to the Gemini AI model and replies with the generated response."""
+    """Sends user messages to the Gemini AI model and replies with engaging format."""
     user_msg = update.message.text
     try:
         response = model.generate_content(user_msg)
-        reply = response.text if response and response.text else "Sorry, I couldn’t generate a reply. Please try again."
+        raw_reply = response.text if response and response.text else "⚠ Sorry, I couldn’t generate a reply. Please try again."
+
+        # Beautify with engaging format
+        reply = (
+            "💡 *Here’s a helpful answer for you:*\n\n"
+            f"🔹 {raw_reply.replace('. ', '.\n🔹 ')}\n\n"
+            "✨ Keep learning and stay consistent!\n"
+            f"👉 More resources available at: [upsc.notessearch.in](https://upsc.notessearch.in)"
+        )
     except Exception as e:
         reply = f"⚠ Error: {str(e)}"
-    await update.message.reply_text(reply)
+    
+    await update.message.reply_text(reply, parse_mode="Markdown")
 
 # =================== MAIN ===================
 def main():
@@ -151,11 +167,16 @@ def main():
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     
-    # Handlers for the old bot's functionality
+    # Auto start when chat is opened
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_chat))
+
+    # Start command
     app.add_handler(CommandHandler("start", start))
+
+    # Buttons
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    # Handler for the new Gemini AI functionality
+    # AI reply
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, ai_reply))
 
     print("🤖 NotesSearch Bot with Gemini AI is running...")
