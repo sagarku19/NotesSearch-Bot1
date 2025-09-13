@@ -10,6 +10,7 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
+from telegram.error import BadRequest
 
 # =================== CONFIG ===================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -62,8 +63,8 @@ model = genai.GenerativeModel(
 )
 
 # =================== START MESSAGE ===================
-async def start_message(chat):
-    """Reusable start message for new users and /start command"""
+async def send_welcome_message(chat_id, bot_instance):
+    """Sends a formatted welcome message with buttons."""
     keyboard = [
         [InlineKeyboardButton("💬 Chat with Bot", callback_data="chat_with_bot")],
         [InlineKeyboardButton("ℹ️ About NotesSearch", callback_data="about")],
@@ -71,16 +72,21 @@ async def start_message(chat):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await chat.send_message(
+    welcome_text = (
         "👋 *Welcome to NotesSearch Bot* 📚\n\n"
-        "✨ Your AI-powered study companion for *UPSC, JEE, NEET & GATE* ✨\n\n"
+        "✨ Your AI-powered study companion for _UPSC, JEE, NEET & GATE_ ✨\n\n"
         "Here’s what I can help you with:\n"
         "✅ Access Free & Premium Notes\n"
         "✅ Previous Year Questions (PYQs)\n"
         "✅ Revision Mind Maps\n"
         "✅ Mock Tests & Practice Resources\n"
         "✅ Smart Study Guidance\n\n"
-        "⚡ *Pro Tip:* Just type your question or click a button below 👇",
+        "⚡ _Pro Tip:_ Just type your question or click a button below 👇"
+    )
+
+    await bot_instance.send_message(
+        chat_id=chat_id,
+        text=welcome_text,
         parse_mode="Markdown",
         reply_markup=reply_markup,
     )
@@ -88,11 +94,13 @@ async def start_message(chat):
 # =================== COMMANDS & HANDLERS ===================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the /start command."""
-    await start_message(update.message)
+    await send_welcome_message(update.effective_chat.id, context.bot)
 
 async def new_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Auto-send start message when new chat is opened"""
-    await start_message(update.message)
+    """Auto-send start message when a new chat is opened."""
+    for member in update.message.new_chat_members:
+        if member.is_bot:
+            await send_welcome_message(update.effective_chat.id, context.bot)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles all button clicks."""
@@ -103,14 +111,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if query.data == "chat_with_bot":
             await query.message.reply_text(
                 "👋 Hi there, I’m your *NotesSearch Study Assistant* 🤖\n\n"
-                "Ask me *anything* about:\n"
+                "Ask me _anything_ about:\n"
                 "📚 UPSC, JEE, NEET, GATE preparation\n"
                 "📝 Notes, PYQs & Mock Tests\n"
                 "💡 Study strategies & motivation\n\n"
-                "✨ I’m here to guide you towards success. So, tell me — *which exam are you preparing for?*",
+                "✨ I’m here to guide you towards success. So, tell me — _which exam are you preparing for?_",
                 parse_mode="Markdown",
             )
-
+        
         elif query.data == "about":
             keyboard = [
                 [InlineKeyboardButton("🌐 Visit Website", url=WEBSITE_LINK)],
@@ -119,17 +127,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("📂 Free Drive Link", url=FREE_DRIVE_LINK)],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-
-            await query.message.reply_text(
+            
+            about_text = (
                 "📖 *About NotesSearch*\n\n"
                 "NotesSearch is your *one-stop learning partner* 🚀\n\n"
-                "✨ What we offer:\n"
+                "✨ *What we offer:*\n"
                 "🔹 UPSC, JEE, NEET & GATE study material\n"
                 "🔹 Handwritten + Printed Notes (Hindi & English)\n"
                 "🔹 Organized Study Plans & Toppers’ Notes\n"
                 "🔹 Daily Free PDFs & Updates\n"
                 "🔹 Community Support via Telegram\n\n"
-                "📍 *Explore now:* [upsc.notessearch.in](https://upsc.notessearch.in)",
+                "📍 _Explore now:_ [upsc.notessearch.in](https://upsc.notessearch.in)"
+            )
+
+            await query.message.reply_text(
+                about_text,
                 parse_mode="Markdown",
                 reply_markup=reply_markup,
             )
@@ -141,16 +153,26 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            await query.message.reply_text(
+            help_text = (
                 "🆘 *Help & Support*\n\n"
                 "If you face any issues or have queries:\n\n"
-                f"📧 Email: {SUPPORT_EMAIL}\n"
-                f"🌐 Website: {WEBSITE_LINK}\n"
-                f"📸 Instagram: {INSTAGRAM_LINK}\n\n"
-                "💡 Our team is always ready to assist you!",
+                f"📧 Email: `{SUPPORT_EMAIL}`\n"
+                f"🌐 Website: [upsc.notessearch.in](https://upsc.notessearch.in)\n"
+                f"📸 Instagram: [notessearch.in](https://instagram.com/notessearch.in)\n\n"
+                "💡 Our team is always ready to assist you!"
+            )
+
+            await query.message.reply_text(
+                help_text,
                 parse_mode="Markdown",
                 reply_markup=reply_markup,
             )
+        else:
+            logger.warning(f"Unknown callback data: {query.data}")
+            await query.message.reply_text(
+                "⚠ I'm not sure what to do with that. Please choose from the buttons provided."
+            )
+            
     except Exception as e:
         logger.error(f"Error handling button: {e}")
         await query.message.reply_text("⚠ Something went wrong. Please try again.")
@@ -165,32 +187,34 @@ async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⚠ Sorry, I couldn’t generate a reply. Please try again."
         )
 
-        # Format into bullet points
-        formatted_reply = raw_reply.replace(". ", ".\n🔹 ")
-
-        reply = (
+        reply_text = (
             "💡 *Here’s a helpful answer for you:*\n\n"
-            f"🔹 {formatted_reply}\n\n"
+            f"{raw_reply.replace('. ', '.\n🔹 ')}\n\n"
             "━━━━━━━\n"
-            "✨ Keep learning and stay consistent!\n"
+            "✨ _Keep learning and stay consistent!_\n"
             f"👉 More resources available at: [upsc.notessearch.in](https://upsc.notessearch.in)"
         )
 
+        try:
+            await update.message.reply_text(reply_text, parse_mode="Markdown")
+        except BadRequest as e:
+            logger.warning(f"Markdown failed, sending plain text. Error: {e}")
+            await update.message.reply_text(raw_reply)
+
     except Exception as e:
         logger.error(f"AI reply error: {e}")
-        reply = (
+        error_message = (
             "⚠ Sorry, there was an issue processing your request.\n\n"
             "💡 Please try again, or check out study material here:\n"
             f"[upsc.notessearch.in](https://upsc.notessearch.in)"
         )
-
-    await update.message.reply_text(reply, parse_mode="Markdown")
+        await update.message.reply_text(error_message, parse_mode="Markdown")
 
 # =================== MAIN ===================
 def main():
     """Initializes and runs the bot."""
     if not TELEGRAM_TOKEN or not GEMINI_API_KEY:
-        print("Error: TELEGRAM_TOKEN or GEMINI_API_KEY environment variables are not set.")
+        logger.error("Error: TELEGRAM_TOKEN or GEMINI_API_KEY environment variables are not set.")
         return
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -210,10 +234,13 @@ def main():
     # Error handler
     async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
         logger.error(msg="Exception while handling an update:", exc_info=context.error)
-        if isinstance(update, Update) and update.message:
-            await update.message.reply_text(
-                "⚠ Oops! Something went wrong.\n"
-                "💡 Please try again later or visit: [upsc.notessearch.in](https://upsc.notessearch.in)",
+        if isinstance(update, Update) and update.effective_chat:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=(
+                    "⚠ Oops! Something went wrong.\n"
+                    "💡 Please try again later or visit: [upsc.notessearch.in](https://upsc.notessearch.in)"
+                ),
                 parse_mode="Markdown",
             )
 
