@@ -137,7 +137,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "🔹 Organized Study Plans & Toppers’ Notes\n"
                 "🔹 Daily Free PDFs & Updates\n"
                 "🔹 Community Support via Telegram\n\n"
-                "📍 _Explore now:_ [upsc.notessearch.in](https://upsc.notessearch.in)"
+                f"📍 _Explore now:_ [{WEBSITE_LINK}](https://{WEBSITE_LINK})"
             )
 
             await query.message.reply_text(
@@ -157,8 +157,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "🆘 *Help & Support*\n\n"
                 "If you face any issues or have queries:\n\n"
                 f"📧 Email: `{SUPPORT_EMAIL}`\n"
-                f"🌐 Website: [upsc.notessearch.in](https://upsc.notessearch.in)\n"
-                f"📸 Instagram: [notessearch.in](https://instagram.com/notessearch.in)\n\n"
+                f"🌐 Website: [{WEBSITE_LINK}](https://{WEBSITE_LINK})\n"
+                f"📸 Instagram: [notessearch.in]({INSTAGRAM_LINK})\n\n"
                 "💡 Our team is always ready to assist you!"
             )
 
@@ -187,18 +187,22 @@ async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⚠ Sorry, I couldn’t generate a reply. Please try again."
         )
 
-        reply_text = (
-            "💡 *Here’s a helpful answer for you:*\n\n"
-            f"{raw_reply.replace('. ', '.\n🔹 ')}\n\n"
-            "━━━━━━━\n"
-            "✨ _Keep learning and stay consistent!_\n"
-            f"👉 More resources available at: [upsc.notessearch.in](https://upsc.notessearch.in)"
-        )
+        # Use a list of strings to build the message, preventing f-string issues
+        reply_parts = [
+            "💡 *Here’s a helpful answer for you:*\n\n",
+            raw_reply.replace(". ", ".\n🔹 "),
+            "\n\n",
+            "━━━━━━━\n",
+            "✨ _Keep learning and stay consistent!_\n",
+            f"👉 More resources available at: [{WEBSITE_LINK}](https://{WEBSITE_LINK})",
+        ]
+        
+        reply_text = "".join(reply_parts)
 
         try:
             await update.message.reply_text(reply_text, parse_mode="Markdown")
         except BadRequest as e:
-            logger.warning(f"Markdown failed, sending plain text. Error: {e}")
+            logger.warning(f"Markdown failed for message. Sending plain text. Error: {e}")
             await update.message.reply_text(raw_reply)
 
     except Exception as e:
@@ -206,7 +210,7 @@ async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         error_message = (
             "⚠ Sorry, there was an issue processing your request.\n\n"
             "💡 Please try again, or check out study material here:\n"
-            f"[upsc.notessearch.in](https://upsc.notessearch.in)"
+            f"[{WEBSITE_LINK}](https://{WEBSITE_LINK})"
         )
         await update.message.reply_text(error_message, parse_mode="Markdown")
 
@@ -239,7 +243,7 @@ def main():
                 chat_id=update.effective_chat.id,
                 text=(
                     "⚠ Oops! Something went wrong.\n"
-                    "💡 Please try again later or visit: [upsc.notessearch.in](https://upsc.notessearch.in)"
+                    f"💡 Please try again later or visit: [{WEBSITE_LINK}](https://{WEBSITE_LINK})"
                 ),
                 parse_mode="Markdown",
             )
